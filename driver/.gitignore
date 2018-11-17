@@ -1,0 +1,11 @@
+.hawk.ko.cmd
+.hawk.mod.o.cmd
+.hawk.o.cmd
+.tmp_versions/
+Module.symvers
+hawk.ko
+hawk.mod.c
+hawk.mod.o
+hawk.o
+modules.order
+
