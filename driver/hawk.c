@@ -4,35 +4,22 @@
   See: https://github.com/torvalds/linux/blob/master/drivers/usb/usb-skeleton.c
 */
 
-#include <linux/version.h>
-#include <linux/kernel.h>
-#include <linux/errno.h>
 #include <linux/slab.h>
-#include <linux/init.h>
 #include <linux/module.h>
-#include <linux/kref.h>
 #include <linux/uaccess.h>
 #include <linux/usb.h>
 #include <linux/proc_fs.h>
-#include <linux/fs.h>
-
-#include <linux/fcntl.h>
-#include <linux/seq_file.h>
-#include <linux/cdev.h>
-#include <linux/types.h>
-#include <linux/moduleparam.h>
-#include <linux/device.h>
-
 #include "hawk.h"
 
 /*
   The module's device table (used for hotplugging):
 */
 static const struct usb_device_id hawk_table[] = {
-	//	{ USB_DEVICE(VENDOR_ID,	PRODUCT_ID) },
-	{USB_DEVICE(0x0416, 0x9391)}, //WINBOND
-	{USB_DEVICE(0x1130, 0x0202)}, //Tenx Tech.
-	{}};
+		//	{ USB_DEVICE(VENDOR_ID,	PRODUCT_ID) },
+		{USB_DEVICE(0x0416, 0x9391)}, //WINBOND
+		{USB_DEVICE(0x1130, 0x0202)}, //Tenx Tech.
+		{}
+};
 MODULE_DEVICE_TABLE(usb, hawk_table);
 
 /*
@@ -58,8 +45,8 @@ static int probe_counter;
   Function declarations:
 */
 static int send_ctrlmsg(struct usb_device *dest_dev, unsigned int dest_pipe,
-						unsigned char b0, unsigned char b1, unsigned char b2,
-						unsigned char b3, unsigned char b4);
+												unsigned char b0, unsigned char b1, unsigned char b2,
+												unsigned char b3, unsigned char b4);
 
 void rotate_left(struct usb_device *d_dev, unsigned int d_pipe);
 void rotate_right(struct usb_device *d_dev, unsigned int d_pipe);
@@ -68,39 +55,36 @@ void aim_down(struct usb_device *d_dev, unsigned int d_pipe);
 void fire_missiles(struct usb_device *d_dev, unsigned int d_pipe);
 void stop_movement(struct usb_device *d_dev, unsigned int d_pipe);
 
-int hawk_write_proc(struct file *file, const char __user *buffer, unsigned long count, void *data);
+static ssize_t hawk_write_proc(struct file *filp, const char __user *buffer, size_t len, loff_t *off);
 static void rm_hawk_proc_entry(void);
 static int hawk_probe(struct usb_interface *interface, const struct usb_device_id *id);
 static void hawk_disconnect(struct usb_interface *interface);
 static int __init usb_hawk_init(void);
-
-
 static void __exit usb_hawk_exit(void);
 
-// The driver's file operations:
+// The driver's proc_fs file operations:
 static struct file_operations fops = {
-	.owner = THIS_MODULE,
-	//.write = hawk_write_proc,
+		.owner = THIS_MODULE,
+		.write = hawk_write_proc,
 };
 
 /*
   The driver's structure:
 */
 static struct usb_driver hawk_driver = {
-	.name = "hawk",
-	.probe = hawk_probe,
-	.disconnect = hawk_disconnect,
-	.id_table = hawk_table,
+		.name = "hawk",
+		.probe = hawk_probe,
+		.disconnect = hawk_disconnect,
+		.id_table = hawk_table,
 };
 
 /*
   Send a control message to the USB device.
 */
 static int send_ctrlmsg(struct usb_device *dest_dev, unsigned int dest_pipe,
-						unsigned char b0, unsigned char b1, unsigned char b2,
-						unsigned char b3, unsigned char b4)
+												unsigned char b0, unsigned char b1, unsigned char b2,
+												unsigned char b3, unsigned char b4)
 {
-	int i;
 	unsigned char buffer[5];
 	memset(buffer, 0, 5);
 
@@ -110,14 +94,12 @@ static int send_ctrlmsg(struct usb_device *dest_dev, unsigned int dest_pipe,
 	buffer[3] = b3;
 	buffer[4] = b4;
 
-	i = usb_control_msg(dest_dev, dest_pipe, USB_REQ_SET_CONFIGURATION,
-						USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE, 0x0300, 0, buffer, 5, 0);
-
-	return i;
+	return usb_control_msg(dest_dev, dest_pipe, USB_REQ_SET_CONFIGURATION,
+											USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE, 0x0300, 0, buffer, 5, 0);
 }
 
 /*
-  Rotate the rocket launcher counter-clockwise.
+  Rotate the missile launcher counter-clockwise.
 */
 void rotate_left(struct usb_device *d_dev, unsigned int d_pipe)
 {
@@ -127,7 +109,7 @@ void rotate_left(struct usb_device *d_dev, unsigned int d_pipe)
 }
 
 /*
-  Rotate the rocket launcher clockwise.
+  Rotate the missile launcher clockwise.
 */
 void rotate_right(struct usb_device *d_dev, unsigned int d_pipe)
 {
@@ -137,7 +119,7 @@ void rotate_right(struct usb_device *d_dev, unsigned int d_pipe)
 }
 
 /*
-  Let the rocket launcher's turrets aim up.
+  Let the missile launcher's turrets aim up.
 */
 void aim_up(struct usb_device *d_dev, unsigned int d_pipe)
 {
@@ -147,7 +129,7 @@ void aim_up(struct usb_device *d_dev, unsigned int d_pipe)
 }
 
 /*
-  Let the rocket launcher's turrets aim down.
+  Let the missile launcher's turrets aim down.
 */
 void aim_down(struct usb_device *d_dev, unsigned int d_pipe)
 {
@@ -167,7 +149,7 @@ void fire_missiles(struct usb_device *d_dev, unsigned int d_pipe)
 }
 
 /*
-  Force the rocket launcher to stop any action it is performing.
+  Force the missile launcher to stop any action it is performing.
 */
 void stop_movement(struct usb_device *d_dev, unsigned int d_pipe)
 {
@@ -179,12 +161,12 @@ void stop_movement(struct usb_device *d_dev, unsigned int d_pipe)
 /*
   Handle write operations to the proc_fs entry corresponding to this driver instance.
 */
-int hawk_write_proc(struct file *file, const char __user *buffer, unsigned long count, void *data)
+static ssize_t hawk_write_proc(struct file *filp, const char __user *buffer, size_t len, loff_t *off)
 {
 	memset(hawk_inc_buffer, ' ', sizeof(hawk_inc_buffer));
-	if (count <= sizeof(hawk_inc_buffer))
+	if (len <= sizeof(hawk_inc_buffer))
 	{
-		if (copy_from_user(hawk_inc_buffer, buffer, count))
+		if (copy_from_user(hawk_inc_buffer, buffer, len))
 		{
 			return -EFAULT;
 		}
@@ -226,7 +208,7 @@ int hawk_write_proc(struct file *file, const char __user *buffer, unsigned long 
 		}
 	}
 
-	return count;
+	return len;
 }
 
 /*
@@ -274,7 +256,6 @@ static int hawk_probe(struct usb_interface *interface, const struct usb_device_i
 				hawk_proc_entry = proc_create("hawk", 0722, NULL, &fops);
 				if (hawk_proc_entry)
 				{
-					//hawk_proc_entry->write_proc = &hawk_write_proc;
 					printk(KERN_INFO "hawk: created /proc/hawk\n");
 				}
 				else
