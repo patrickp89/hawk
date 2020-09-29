@@ -1,4 +1,6 @@
 # hawk
+[![Build Status](https://travis-ci.com/patrickp89/hawk.svg?branch=master)](https://travis-ci.com/patrickp89/hawk)
+
 A linux device driver for toy USB missile launchers.
 
 ## How to build it

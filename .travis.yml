@@ -1,0 +1,13 @@
+dist: xenial
+language: c
+
+compiler:
+  - gcc
+
+before_install:
+  - sudo apt-get -y install build-essential linux-headers-$(uname -r) libncurses5 libncurses5-dev
+
+script:
+  - cd driver/ && make
+  - cd ../gui/ && make
+
